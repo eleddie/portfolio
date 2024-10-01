@@ -1,0 +1,37 @@
+---
+import { getCollection } from "astro:content";
+import Pill from "./Pill.astro";
+
+const { lang } = Astro.props;
+const work = (
+  await getCollection("work", (entry) => entry.slug.startsWith(lang))
+).sort(
+  (a, b) =>
+    Date.parse(b.data.startDate).valueOf() -
+    Date.parse(a.data.startDate).valueOf()
+);
+
+const translations = await import(`../i18n/${lang}.json`);
+---
+
+<section id="experience">
+  <h2>{translations.workExperience}</h2>
+
+  {
+    work.map(
+      ({ data: { role, company, startDate, endDate, location, skills }, body }) => (
+        <div>
+          <h3>{role}</h3>
+          <h4>{company}</h4>
+          <p>
+            {startDate} - {endDate} | {location}
+          </p>
+          <p>{body}</p>
+          <div class="flex flex-wrap gap-2">
+            {skills.map((skill:string)=> <Pill label={skill}/>)}
+          </div>
+        </div>
+      )
+    )
+  }
+</section>

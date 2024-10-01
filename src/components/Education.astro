@@ -1,0 +1,22 @@
+---
+import { getEntry } from "astro:content";
+
+const { lang } = Astro.props;
+const info = await getEntry("personal", `${lang}/info`);
+
+const translations = await import(`../i18n/${lang}.json`);
+const { degree, school, location, year } = info?.data;
+---
+
+<section id="education">
+  <h2>{translations.education}</h2>
+  <div>
+    <div>
+      <h3>
+        {degree}
+      </h3>
+      <p>{school}</p>
+      <p>{location} - {year}</p>
+    </div>
+  </div>
+</section>

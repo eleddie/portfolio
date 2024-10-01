@@ -1,0 +1,68 @@
+---
+import LanguageSwitcher from "./LanguageSwitcher.astro";
+import HomeIcon from "../icons/Home.astro";
+import DownloadIcon from "../icons/Download.astro";
+import ThemeIcon from "../icons/Light.astro";
+import LanguageIcon from "../icons/Language.astro";
+import ThemeToggle from "./ThemeToggle.astro";
+
+const { lang } = Astro.props;
+const translations = await import(`../i18n/${lang}.json`);
+
+const actions = [
+  // {
+    // id: "home",
+    // title: translations.home,
+    // Component: HomeIcon,
+  // },
+  // {
+    // id: "download",
+    // title: translations.downloadPdf,
+    // Component: DownloadIcon,
+  // },
+  {
+    id: "theme",
+    title: translations.changeTheme,
+    Component: ThemeToggle,
+  },
+  {
+    id: "language",
+    title: translations.changeLanguage,
+    Component: LanguageSwitcher,
+  },
+];
+---
+
+<header
+  class="fixed top-0 z-10 flex items-center justify-center w-full mx-auto mt-2 print:scale-0"
+>
+  <nav
+    class="flex px-4 py-1 gap-4 rounded-full text-gray-600 dark:text-gray-200 justify-center items-center bg-white/50 dark:bg-gray-800/50 shadow-lg ring-1 backdrop-blur-sm ring-white/10"
+  >
+    {actions.map(({ id, title, Component }) => <Component lang={lang} />)}
+  </nav>
+</header>
+
+<script>
+  const actions = {
+    home: () => {
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    },
+    download: () => {},
+    theme: () => {},
+    language: () => {},
+  } as const;
+  // add on click event listeners to the buttons in the header
+  // document.querySelectorAll("button").forEach((button) => {
+  //   button.addEventListener("click", (event) => {
+  //     const action: keyof typeof actions = button.id.replace(
+  //       "header-action-",
+  //       ""
+  //     ) as any;
+  //     // actions[action]();
+  //   });
+  // });
+</script>

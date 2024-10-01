@@ -1,0 +1,43 @@
+---
+import { getCollection } from "astro:content";
+import Pill from "./Pill.astro";
+const { lang } = Astro.props;
+
+const projects = (
+  await getCollection("projects", (entry) => entry.slug.startsWith(lang))
+).reverse();
+
+const translations = await import(`../i18n/${lang}.json`);
+---
+
+<section id="projects">
+  <h2>{translations.projects}</h2>
+
+  {
+    projects.map(({ data: { title, tech, url }, body }) => (
+      <a
+        href={url}
+        target="_blank"
+        class="display:block no-underline"
+        rel="noopener noreferrer"
+      >
+        <article class="overflow-hidden flex flex-row transition-all hover:scale-105 hover:shadow-xl rounded-md">
+          <img
+            src={`/${title.toLowerCase()}.png`}
+            alt={`${title}`}
+            class="w-48 h-full object-contain self-center	"
+          />
+          <div class="p-6">
+            <h3>{title}</h3>
+            <p>{body}</p>
+            <div class="flex flex-wrap gap-2">
+              {tech.map((item: string) => (
+               <Pill label={item} />
+              ))}
+            </div>
+          </div>
+        </article>
+      </a>
+    ))
+  }
+</section>

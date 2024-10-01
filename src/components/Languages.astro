@@ -1,0 +1,20 @@
+---
+const { lang } = Astro.props;
+const translations = await import(`../i18n/${lang}.json`);
+---
+
+<section id="languages">
+  <h2>{translations.languages}</h2>
+
+  {
+    [
+      { language: translations.spanish, proficiency: translations.native },
+      { language: translations.english, proficiency: translations.fluent },
+    ].map((lang) => (
+      <div>
+        <h3>{lang.language}</h3>
+        <p>{lang.proficiency}</p>
+      </div>
+    ))
+  }
+</section>

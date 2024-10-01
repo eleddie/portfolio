@@ -1,0 +1,320 @@
+---
+
+---
+
+<script>
+  const keys = {
+    ArrowUp: false,
+    ArrowRight: false,
+    ArrowLeft: false,
+    ArrowDown: false,
+  };
+
+  type Platform = {
+    top: number;
+    bottom: number;
+    left: number;
+    right: number;
+    focus?: () => void;
+    blur?: () => void;
+  };
+
+  interface PlayerType {
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+    direction: string;
+    velocityX: number;
+    velocityY: number;
+    jumpForce: number;
+    gravity: number;
+    friction: number;
+    platforms: Platform[];
+    mousePlatform: Platform;
+    onPlatform: boolean;
+    element: HTMLElement;
+    scroll: number;
+    moveSprite: number;
+    frameCount: number;
+    moveLeft: () => void;
+    moveRight: () => void;
+    jump: () => void;
+    jumpOffPlatform: () => void;
+    fall: () => void;
+    update: () => void;
+    render: () => void;
+  }
+
+  const aspectRatio = 94 / 88;
+  export default class Player implements PlayerType {
+    top: number;
+    left: number;
+    width: number = 45;
+    height: number = this.width * aspectRatio;
+    direction: string = "left";
+    velocityX: number = 0;
+    velocityY: number = 0;
+    jumpForce: number = -12;
+    jumpCount: number = 0;
+    gravity: number = 0.4;
+    friction: number = 0.85;
+    scroll: number = 0;
+    moveSprite: number = 1;
+    frameCount: number = 0;
+    platforms: Platform[] = [];
+    mousePlatform: Platform = {
+      top: 0,
+      bottom: 0,
+      left: 0,
+      right: 0,
+    };
+    onPlatform: boolean = false;
+    element: HTMLElement = document.createElement("div");
+
+    constructor(
+      initialTop: number,
+      initialLeft: number,
+      platforms: Platform[] = []
+    ) {
+      this.top = initialTop || 100;
+      this.left = initialLeft || window.innerWidth / 2 - this.width / 2;
+      this.platforms = platforms;
+      this.element.style.backgroundImage = "url(idle.png)";
+      this.element.style.zIndex = "100";
+
+      document.addEventListener("keydown", (event) => {
+        if (["a", "A", "ArrowLeft"].includes(event.key)) {
+          keys.ArrowLeft = true;
+        }
+        if (["d", "D", "ArrowRight"].includes(event.key)) {
+          keys.ArrowRight = true;
+        }
+        if (["w", "W", "ArrowUp", " "].includes(event.key)) {
+          keys.ArrowUp = true;
+        }
+        if (["s", "S", "ArrowDown"].includes(event.key)) {
+          keys.ArrowDown = true;
+        }
+      });
+
+      document.addEventListener("keyup", (event) => {
+        if (["a", "A", "ArrowLeft"].includes(event.key)) {
+          keys.ArrowLeft = false;
+        }
+        if (["d", "D", "ArrowRight"].includes(event.key)) {
+          keys.ArrowRight = false;
+        }
+        if (["w", "W", "ArrowUp", " "].includes(event.key)) {
+          keys.ArrowUp = false;
+        }
+        if (["s", "S", "ArrowDown"].includes(event.key)) {
+          keys.ArrowDown = false;
+        }
+      });
+
+      // use mouse as a platform too
+      document.addEventListener("mousemove", (event) => {
+        this.mousePlatform = {
+          top: event.clientY,
+          bottom: event.clientY + 5,
+          left: event.clientX,
+          right: event.clientX + 5,
+        };
+        // push the player up if the mouse is near the player
+        if (
+          event.clientX > this.left &&
+          event.clientX < this.left + this.width &&
+          event.clientY > this.top &&
+          event.clientY < this.top + this.height
+        ) {
+          this.velocityY = -5;
+          // if mouse is coming form the left, push the player to the right
+          if (event.clientX < this.left + this.width / 2) {
+            this.velocityX = 5;
+          } else {
+            this.velocityX = -5;
+          }
+        }
+      });
+    }
+
+    moveLeft() {
+      this.velocityX -= 1;
+      this.direction = "left";
+    }
+    moveRight() {
+      this.velocityX += 1;
+      this.direction = "right";
+    }
+    jump(isSecondJump = false) {
+      this.jumpCount++;
+      this.velocityY = isSecondJump ? this.jumpForce + 2 : this.jumpForce;
+      for (let platform of this.platforms) {
+        platform.blur?.();
+      }
+    }
+
+    jumpOffPlatform() {
+      if (this.onPlatform) {
+        this.top += 5;
+        this.onPlatform = false;
+        for (let platform of this.platforms) {
+          platform.blur?.();
+        }
+      }
+    }
+    fall() {
+      this.onPlatform = false;
+      this.velocityY += this.gravity;
+      const playerBottom = this.top + this.height;
+
+      const screenBottom = window.innerHeight + this.scroll;
+      // Check if the player is at the bottom of the screen
+      if (playerBottom > screenBottom && this.velocityY > 0) {
+        this.top = screenBottom - this.height;
+        this.velocityY = 0;
+        this.jumpCount = 0;
+        return;
+      }
+
+      // Check if the player is colliding with a platform
+      // Only if the player is falling
+
+      for (let platform of [...this.platforms, this.mousePlatform]) {
+        if (this.velocityY - this.gravity > 0) {
+          if (
+            Math.abs(playerBottom - platform.top) < 5 &&
+            this.left + (2 * this.width) / 3 > platform.left &&
+            this.left + this.width / 3 < platform.right
+          ) {
+            platform.focus?.();
+            this.onPlatform = true;
+            this.top = platform.top - this.height;
+            this.velocityY = 0;
+            this.jumpCount = 0;
+            break;
+          }
+        }
+      }
+
+      if (this.velocityY === 0) {
+        this.jumpCount = 0;
+      }
+    }
+    update() {
+      this.velocityX *= this.friction;
+      this.left += this.velocityX;
+      this.top += this.velocityY;
+
+      // Check if the player is at the edge of the screen
+      if (this.left <= 0) {
+        this.left = 0;
+        this.velocityX = 0;
+      }
+
+      // Check if the player is at the edge of the screen
+      if (this.left + this.width >= document.body.clientWidth) {
+        this.left = document.body.clientWidth - this.width;
+        this.velocityX = 0;
+      }
+
+      if (keys.ArrowLeft) {
+        this.moveLeft();
+      }
+      if (keys.ArrowRight) {
+        this.moveRight();
+      }
+
+      if (keys.ArrowUp && this.jumpCount < 2) {
+        keys.ArrowUp = false;
+        this.jump(this.jumpCount === 1);
+      }
+      if (keys.ArrowDown) {
+        this.jumpOffPlatform();
+      }
+
+      this.fall();
+      this.frameCount++;
+      if (this.frameCount > 60) {
+        this.frameCount = 0;
+      }
+    }
+
+    render() {
+      this.element.style.position = "absolute";
+      this.element.style.top = `${this.top}px`;
+      this.element.style.left = `${this.left}px`;
+      this.element.style.width = `${this.width}px`;
+      this.element.style.height = `${this.height}px`;
+
+      if (Math.abs(Math.round(this.velocityX)) === 0)
+        this.element.style.backgroundImage = "url(idle.png)";
+      else {
+        this.moveSprite = this.frameCount > 30 ? 1 : 2;
+
+        this.element.style.backgroundImage = `url(walk-${this.moveSprite}.png)`;
+      }
+      this.element.style.backgroundSize = "contain";
+      this.element.style.backgroundRepeat = "no-repeat";
+      this.element.style.backgroundPosition = "center";
+
+      // flip the player based on the direction
+      if (this.direction === "left") {
+        this.element.style.transform = "scaleX(-1)";
+      } else {
+        this.element.style.transform = "scaleX(1)";
+      }
+
+      document.body.appendChild(this.element);
+      requestAnimationFrame(() => {
+        this.update();
+        this.render();
+      });
+    }
+  }
+  function getPlatforms() {
+    const platformPositions = Array.from(
+      document.getElementsByClassName("platform")
+    ).map((platform) => {
+      const rect = platform.getBoundingClientRect();
+      // Set element to position absolute so that it doesn't affect the layout
+      /* @ts-ignore */
+      platform.style.position = "relative";
+
+      return {
+        top: rect.top,
+        bottom: rect.bottom,
+        left: rect.left,
+        right: rect.right,
+        //@ts-ignore
+        focus: () => platform.focus(),
+        //@ts-ignore
+        blur: () => platform.blur(),
+      };
+    });
+    return platformPositions;
+  }
+
+  let platformPositions;
+  let player: PlayerType;
+
+  document.addEventListener("DOMContentLoaded", () => {
+    document.body.style.height = `${document.documentElement.scrollHeight}px`;
+
+    platformPositions = getPlatforms();
+    player = new Player(100, 100, platformPositions);
+
+    player.update();
+    player.render();
+
+    window.addEventListener("resize", () => {
+      platformPositions = getPlatforms();
+      player.platforms = platformPositions;
+    });
+  });
+
+  document.addEventListener("scroll", () => {
+    player.scroll = window.scrollY;
+  });
+</script>
