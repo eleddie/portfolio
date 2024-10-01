@@ -21,7 +21,7 @@ const translations = await import(`../i18n/${lang}.json`);
         class="display:block no-underline"
         rel="noopener noreferrer"
       >
-        <article class="overflow-hidden flex flex-row transition-all hover:scale-105 hover:shadow-xl rounded-md">
+        <article class="overflow-hidden flex flex-col md:flex-row transition-all hover:scale-105 hover:shadow-xl rounded-md">
           <img
             src={`/${title.toLowerCase()}.png`}
             alt={`${title}`}
